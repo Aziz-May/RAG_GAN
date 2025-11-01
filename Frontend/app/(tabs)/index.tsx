@@ -1,29 +1,104 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
-import "./global.css";
-
+import React from 'react';
+import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import { Link } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
+import Card from '@/components/ui/Card';
+import "../../global.css";
 
 export default function HomeScreen() {
   return (
-    <></>
+    <ScrollView className="flex-1 bg-slate-50">
+      {/* Header */}
+      <View className="pt-16 pb-12 px-6 bg-gradient-to-r from-indigo-600 via-violet-600 to-pink-500 shadow-sm">
+        <Text className="text-3xl font-extrabold text-white mb-1">Welcome Back</Text>
+        <Text className="text-base text-indigo-100/90 max-w-xl">
+          Ready to continue your journey? We're here to help you take the next step.
+        </Text>
+      </View>
+
+      <View className="px-6 py-6">
+        {/* Quick Actions */}
+        <Text className="text-xl font-bold text-gray-900 mb-4">Quick Actions</Text>
+        
+        <View className="flex-row flex-wrap gap-4 mb-8">
+          <Link href="/(tabs)/chat" asChild>
+            <TouchableOpacity className="flex-1 min-w-[45%]">
+              <Card className="items-center py-6 shadow-md">
+                <View className="w-16 h-16 rounded-full bg-indigo-50 items-center justify-center mb-3">
+                  <Ionicons name="chatbubbles" size={32} color="#4f46e5" />
+                </View>
+                <Text className="text-base font-semibold text-gray-900">Chat</Text>
+                <Text className="text-sm text-gray-600">AI Assistant</Text>
+              </Card>
+            </TouchableOpacity>
+          </Link>
+
+          <Link href="/(tabs)/upload" asChild>
+            <TouchableOpacity className="flex-1 min-w-[45%]">
+              <Card className="items-center py-6 shadow-md">
+                <View className="w-16 h-16 rounded-full bg-emerald-50 items-center justify-center mb-3">
+                  <Ionicons name="cloud-upload" size={32} color="#10b981" />
+                </View>
+                <Text className="text-base font-semibold text-gray-900">Upload</Text>
+                <Text className="text-sm text-gray-600">Share Info</Text>
+              </Card>
+            </TouchableOpacity>
+          </Link>
+
+          <Link href="/(tabs)/psychologists" asChild>
+            <TouchableOpacity className="flex-1 min-w-[45%]">
+              <Card className="items-center py-6 shadow-md">
+                <View className="w-16 h-16 rounded-full bg-violet-50 items-center justify-center mb-3">
+                  <Ionicons name="people" size={32} color="#7c3aed" />
+                </View>
+                <Text className="text-base font-semibold text-gray-900">Counselors</Text>
+                <Text className="text-sm text-gray-600">Get Help</Text>
+              </Card>
+            </TouchableOpacity>
+          </Link>
+
+          <Link href="/(tabs)/profile" asChild>
+            <TouchableOpacity className="flex-1 min-w-[45%]">
+              <Card className="items-center py-6 shadow-md">
+                <View className="w-16 h-16 rounded-full bg-amber-50 items-center justify-center mb-3">
+                  <Ionicons name="person" size={32} color="#f59e0b" />
+                </View>
+                <Text className="text-base font-semibold text-gray-900">Profile</Text>
+                <Text className="text-sm text-gray-600">Your Info</Text>
+              </Card>
+            </TouchableOpacity>
+          </Link>
+        </View>
+
+        {/* Recent Activity */}
+        <Text className="text-xl font-bold text-gray-900 mb-4">Recent Activity</Text>
+        <Card className="mb-4">
+          <View className="flex-row items-center py-3">
+            <View className="w-10 h-10 rounded-full bg-indigo-50 items-center justify-center mr-3">
+              <Ionicons name="chatbubbles" size={20} color="#4f46e5" />
+            </View>
+            <View className="flex-1">
+              <Text className="text-base font-medium text-gray-900">Chat Session</Text>
+              <Text className="text-sm text-gray-600">2 hours ago</Text>
+            </View>
+          </View>
+        </Card>
+
+        {/* Tips Card */}
+        <Card className="bg-gradient-to-r from-indigo-50 to-violet-50 border-transparent">
+          <View className="flex-row items-start">
+            <Ionicons name="bulb" size={24} color="#4f46e5" />
+            <View className="ml-3 flex-1">
+              <Text className="text-base font-semibold text-gray-900 mb-1">
+                Daily Tip
+              </Text>
+              <Text className="text-sm text-gray-700">
+                Regular communication with counselors can help you stay on track with your goals.
+              </Text>
+            </View>
+          </View>
+        </Card>
+      </View>
+    </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  titleContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-  stepContainer: {
-    gap: 8,
-    marginBottom: 8,
-  },
-  reactLogo: {
-    height: 178,
-    width: 290,
-    bottom: 0,
-    left: 0,
-    position: 'absolute',
-  },
-});
