@@ -15,6 +15,7 @@ export default function SignupScreen() {
     password: '',
     confirmPassword: '',
   });
+  const [role, setRole] = useState<'client' | 'consultant'>('client');
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({
     name: '',
@@ -84,8 +85,15 @@ export default function SignupScreen() {
   const handleSignup = async () => {
     if (!validateForm()) return;
 
+    // If user selected consultant, forward them to the consultant application flow
+    if (role === 'consultant') {
+      // optional: we could pass basic info via query params or state; keep simple for now
+      router.push('/(consultant-auth)/signup' as any);
+      return;
+    }
+
     setLoading(true);
-    // Simulate API call
+    // Simulate API call for client signup
     setTimeout(() => {
       setLoading(false);
       // Navigate to main app (tabs)
@@ -112,6 +120,28 @@ export default function SignupScreen() {
           </View>
 
           {/* Form */}
+          {/* Role selector */}
+          <View className="mb-4">
+            <Text className="text-sm text-gray-700 mb-2">I am signing up as</Text>
+            <View className="flex-row rounded-lg overflow-hidden border border-gray-200">
+              <TouchableOpacity
+                onPress={() => setRole('client')}
+                className={`flex-1 px-4 py-2 items-center ${role === 'client' ? 'bg-white' : 'bg-gray-50'}`}
+              >
+                <Text className={`font-medium ${role === 'client' ? 'text-gray-900' : 'text-gray-600'}`}>Client</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => setRole('consultant')}
+                className={`flex-1 px-4 py-2 items-center ${role === 'consultant' ? 'bg-white' : 'bg-gray-50'}`}
+              >
+                <Text className={`font-medium ${role === 'consultant' ? 'text-gray-900' : 'text-gray-600'}`}>Consultant</Text>
+              </TouchableOpacity>
+            </View>
+            {role === 'consultant' && (
+              <Text className="text-xs text-gray-500 mt-2">Consultants apply to create a professional account; your application will be reviewed.</Text>
+            )}
+          </View>
+
           <View className="mb-6">
             <Input
               label="Full Name"
@@ -165,7 +195,7 @@ export default function SignupScreen() {
             />
 
             <Button
-              title="Sign Up"
+              title={role === 'consultant' ? 'Apply as Consultant' : 'Sign Up'}
               onPress={handleSignup}
               loading={loading}
               className="mb-4 mt-2"
