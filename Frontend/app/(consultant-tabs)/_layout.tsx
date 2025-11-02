@@ -55,6 +55,14 @@ export default function ConsultantTabLayout() {
           ),
         }}
       />
+      <Tabs.Screen
+        name="messages/[clientName]"
+        options={{
+          href: null,
+          title: '',
+          tabBarStyle: { display: 'none' },
+        }}
+      />
     </Tabs>
   );
 }

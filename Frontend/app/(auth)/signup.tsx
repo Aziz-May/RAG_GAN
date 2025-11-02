@@ -1,218 +1,159 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
-import { Link, router } from 'expo-router';
+import React, { useState, useEffect } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { Alert } from '@/components/ui/Alert';
+import { RoleSelector, AuthFormLayout, AuthHeader, AuthFooter } from '@/components/auth';
+import { useAuth } from '@/hooks/useAuth';
+import { useForm } from '@/hooks/useForm';
+import { validateEmail, validatePassword, validateName } from '@/utils/validation';
+import { navigateToSignup } from '@/services/navigation';
+import { router } from 'expo-router';
+import { ROUTES } from '@/utils/constants';
 import '../../global.css';
 
+interface SignupValues {
+  name: string;
+  email: string;
+  password: string;
+  confirmPassword: string;
+}
+
 export default function SignupScreen() {
-  const [formData, setFormData] = useState({
-    name: '',
-    email: '',
-    school: '',
-    dreamJob: '',
-    password: '',
-    confirmPassword: '',
-  });
   const [role, setRole] = useState<'client' | 'consultant'>('client');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({
-    name: '',
-    email: '',
-    school: '',
-    dreamJob: '',
-    password: '',
-    confirmPassword: '',
-  });
+  const auth = useAuth();
+  
+  // Reset form when switching roles for a cleaner UX
+  useEffect(() => {
+    // Only reset when toggling role on this screen
+    // (If role === 'consultant', we still stay on this screen until submit)
+    form.resetForm();
+  }, [role]);
 
-  const updateField = (field: string, value: string) => {
-    setFormData(prev => ({ ...prev, [field]: value }));
-    setErrors(prev => ({ ...prev, [field]: '' }));
+  // Form validation schema
+  const validateSignupForm = (values: SignupValues) => {
+    const errors: Record<string, string> = {};
+
+    const nameError = validateName(values.name);
+    if (nameError) errors.name = nameError;
+
+    const emailError = validateEmail(values.email);
+    if (emailError) errors.email = emailError;
+
+    const passwordError = validatePassword(values.password);
+    if (passwordError) errors.password = passwordError;
+
+    if (values.password !== values.confirmPassword) {
+      errors.confirmPassword = 'Passwords do not match';
+    }
+
+    return errors;
   };
 
-  const validateForm = () => {
-    let valid = true;
-    const newErrors = {
-      name: '',
-      email: '',
-      school: '',
-      dreamJob: '',
-      password: '',
-      confirmPassword: '',
-    };
+  // Initialize form
+  const form = useForm<SignupValues>(
+    { name: '', email: '', password: '', confirmPassword: '' },
+    async (values) => {
+      try {
+        // If consultant role selected, go to consultant signup
+        if (role === 'consultant') {
+          navigateToSignup('consultant');
+          return;
+        }
 
-    if (!formData.name) {
-      newErrors.name = 'Name is required';
-      valid = false;
-    }
-
-    if (!formData.email) {
-      newErrors.email = 'Email is required';
-      valid = false;
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = 'Email is invalid';
-      valid = false;
-    }
-
-    if (!formData.school) {
-      newErrors.school = 'School is required';
-      valid = false;
-    }
-
-    if (!formData.dreamJob) {
-      newErrors.dreamJob = 'Dream job is required';
-      valid = false;
-    }
-
-    if (!formData.password) {
-      newErrors.password = 'Password is required';
-      valid = false;
-    } else if (formData.password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-      valid = false;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      newErrors.confirmPassword = 'Passwords do not match';
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
-  };
-
-  const handleSignup = async () => {
-    if (!validateForm()) return;
-
-    // If user selected consultant, forward them to the consultant application flow
-    if (role === 'consultant') {
-      // optional: we could pass basic info via query params or state; keep simple for now
-      router.push('/(consultant-auth)/signup' as any);
-      return;
-    }
-
-    setLoading(true);
-    // Simulate API call for client signup
-    setTimeout(() => {
-      setLoading(false);
-      // Navigate to main app (tabs)
-      router.replace('/(tabs)');
-    }, 1500);
-  };
+        // Sign up as client
+        await auth.signup({
+          name: values.name,
+          email: values.email,
+          password: values.password,
+          role: 'client',
+        });
+        // Navigate to client tabs after signup
+  router.replace('/(tabs)');
+      } catch (error) {
+        // Error is already handled by AuthContext
+        console.error('Signup error:', error);
+      }
+    },
+    validateSignupForm
+  );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white"
-    >
+    <>
       <StatusBar style="dark" />
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ flexGrow: 1 }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="flex-1 px-6 pt-16 pb-8">
-          {/* Header */}
-          <View className="mb-8">
-            <Text className="text-4xl font-bold text-gray-900 mb-2">Create Account</Text>
-            <Text className="text-lg text-gray-600">Join us on your journey</Text>
-          </View>
+      <AuthFormLayout>
+        <AuthHeader
+          title="Create Account"
+          subtitle="Join us on your journey"
+          variant="client"
+        />
 
-          {/* Form */}
-          {/* Role selector */}
-          <View className="mb-4">
-            <Text className="text-sm text-gray-700 mb-2">I am signing up as</Text>
-            <View className="flex-row rounded-lg overflow-hidden border border-gray-200">
-              <TouchableOpacity
-                onPress={() => setRole('client')}
-                className={`flex-1 px-4 py-2 items-center ${role === 'client' ? 'bg-white' : 'bg-gray-50'}`}
-              >
-                <Text className={`font-medium ${role === 'client' ? 'text-gray-900' : 'text-gray-600'}`}>Client</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => setRole('consultant')}
-                className={`flex-1 px-4 py-2 items-center ${role === 'consultant' ? 'bg-white' : 'bg-gray-50'}`}
-              >
-                <Text className={`font-medium ${role === 'consultant' ? 'text-gray-900' : 'text-gray-600'}`}>Consultant</Text>
-              </TouchableOpacity>
-            </View>
-            {role === 'consultant' && (
-              <Text className="text-xs text-gray-500 mt-2">Consultants apply to create a professional account; your application will be reviewed.</Text>
-            )}
-          </View>
+        {/* Error Alert */}
+        {auth.error && (
+          <Alert
+            type="error"
+            title="Signup Failed"
+            message={auth.error}
+            dismissible
+            onDismiss={() => auth.clearError()}
+          />
+        )}
 
-          <View className="mb-6">
-            <Input
-              label="Full Name"
-              placeholder="Enter your full name"
-              value={formData.name}
-              onChangeText={(value) => updateField('name', value)}
-              error={errors.name}
-            />
+        {/* Role Selector */}
+        <RoleSelector role={role} onRoleChange={setRole} consultantNote />
 
-            <Input
-              label="Email"
-              placeholder="Enter your email"
-              value={formData.email}
-              onChangeText={(value) => updateField('email', value)}
-              keyboardType="email-address"
-              error={errors.email}
-            />
+        {/* Form Fields */}
+        <Input
+          label="Full Name"
+          placeholder="Enter your full name"
+          value={form.values.name}
+          onChangeText={form.handleChange('name')}
+          onBlur={form.handleBlur('name')}
+          error={form.touched.name ? form.errors.name : undefined}
+        />
 
-            <Input
-              label="School"
-              placeholder="Enter your school name"
-              value={formData.school}
-              onChangeText={(value) => updateField('school', value)}
-              error={errors.school}
-            />
+        <Input
+          label="Email"
+          placeholder="Enter your email"
+          value={form.values.email}
+          onChangeText={form.handleChange('email')}
+          onBlur={form.handleBlur('email')}
+          keyboardType="email-address"
+          error={form.touched.email ? form.errors.email : undefined}
+        />
 
-            <Input
-              label="Dream Job"
-              placeholder="What's your dream job?"
-              value={formData.dreamJob}
-              onChangeText={(value) => updateField('dreamJob', value)}
-              error={errors.dreamJob}
-            />
+        <Input
+          label="Password"
+          placeholder="Create a password"
+          value={form.values.password}
+          onChangeText={form.handleChange('password')}
+          onBlur={form.handleBlur('password')}
+          secureTextEntry
+          error={form.touched.password ? form.errors.password : undefined}
+        />
 
-            <Input
-              label="Password"
-              placeholder="Create a password"
-              value={formData.password}
-              onChangeText={(value) => updateField('password', value)}
-              secureTextEntry
-              error={errors.password}
-            />
+        <Input
+          label="Confirm Password"
+          placeholder="Confirm your password"
+          value={form.values.confirmPassword}
+          onChangeText={form.handleChange('confirmPassword')}
+          onBlur={form.handleBlur('confirmPassword')}
+          secureTextEntry
+          error={form.touched.confirmPassword ? form.errors.confirmPassword : undefined}
+        />
 
-            <Input
-              label="Confirm Password"
-              placeholder="Confirm your password"
-              value={formData.confirmPassword}
-              onChangeText={(value) => updateField('confirmPassword', value)}
-              secureTextEntry
-              error={errors.confirmPassword}
-            />
+        {/* Submit Button */}
+        <Button
+          title={role === 'consultant' ? 'Apply as Consultant' : 'Sign Up'}
+          onPress={form.handleSubmit}
+          loading={auth.isLoading || form.isSubmitting}
+          disabled={auth.isLoading || form.isSubmitting}
+          className="mt-6"
+        />
 
-            <Button
-              title={role === 'consultant' ? 'Apply as Consultant' : 'Sign Up'}
-              onPress={handleSignup}
-              loading={loading}
-              className="mb-4 mt-2"
-            />
-          </View>
-
-          {/* Sign In Link */}
-          <View className="flex-row justify-center items-center">
-            <Text className="text-gray-600 text-base">Already have an account? </Text>
-            <Link href={"/(auth)/login" as any} asChild>
-              <TouchableOpacity>
-                <Text className="text-blue-600 font-semibold text-base">Sign In</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        {/* Footer */}
+        <AuthFooter variant="signup" userType="client" />
+      </AuthFormLayout>
+    </>
   );
 }

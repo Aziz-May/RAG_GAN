@@ -10,8 +10,8 @@ export default function HomeScreen() {
     <ScrollView className="flex-1 bg-slate-50">
       {/* Header */}
       <View className="pt-16 pb-12 px-6 bg-gradient-to-r from-indigo-600 via-violet-600 to-pink-500 shadow-sm">
-        <Text className="text-3xl font-extrabold text-white mb-1">Welcome Back</Text>
-        <Text className="text-base text-indigo-100/90 max-w-xl">
+        <Text className="text-3xl font-extrabold text-dark-900 mb-1">Welcome Back</Text>
+        <Text className="text-base text-dark-900/90 max-w-xl">
           Ready to continue your journey? We're here to help you take the next step.
         </Text>
       </View>

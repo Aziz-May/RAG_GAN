@@ -1,121 +1,102 @@
-import React, { useState } from 'react';
-import { View, Text, ScrollView, KeyboardAvoidingView, Platform, TouchableOpacity } from 'react-native';
-import { Link, router } from 'expo-router';
+import React from 'react';
 import { StatusBar } from 'expo-status-bar';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
+import { Alert } from '@/components/ui/Alert';
+import { AuthFormLayout, AuthHeader, AuthFooter } from '@/components/auth';
+import { useAuth } from '@/hooks/useAuth';
+import { useForm } from '@/hooks/useForm';
+import { validateEmail, validatePassword } from '@/utils/validation';
+import { router } from 'expo-router';
+import { ROUTES } from '@/utils/constants';
 import '../../global.css';
 
+interface LoginValues {
+  email: string;
+  password: string;
+}
+
 export default function LoginScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [loading, setLoading] = useState(false);
-  const [errors, setErrors] = useState({ email: '', password: '' });
+  const auth = useAuth();
 
-  const validateForm = () => {
-    let valid = true;
-    const newErrors = { email: '', password: '' };
-
-    if (!email) {
-      newErrors.email = 'Email is required';
-      valid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = 'Email is invalid';
-      valid = false;
-    }
-
-    if (!password) {
-      newErrors.password = 'Password is required';
-      valid = false;
-    } else if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters';
-      valid = false;
-    }
-
-    setErrors(newErrors);
-    return valid;
+  // Form validation schema
+  const validateLoginForm = (values: LoginValues) => {
+    const errors: Record<string, string> = {};
+    const emailError = validateEmail(values.email);
+    if (emailError) errors.email = emailError;
+    const passwordError = validatePassword(values.password);
+    if (passwordError) errors.password = passwordError;
+    return errors;
   };
 
-  const handleLogin = async () => {
-    if (!validateForm()) return;
-
-    setLoading(true);
-    // Simulate API call
-    setTimeout(() => {
-      setLoading(false);
-      // Navigate to main app (tabs)
-      router.replace('/(tabs)');
-    }, 1500);
-  };
+  // Initialize form with useForm hook
+  const form = useForm<LoginValues>(
+    { email: '', password: '' },
+    async (values) => {
+      try {
+        await auth.login(values.email, values.password);
+        // Navigate to client tabs after successful login
+  router.replace('/(tabs)');
+      } catch (error) {
+        // Error is already handled by AuthContext
+        console.error('Login error:', error);
+      }
+    },
+    validateLoginForm
+  );
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      className="flex-1 bg-white"
-    >
+    <>
       <StatusBar style="dark" />
-      <ScrollView
-        className="flex-1"
-        contentContainerStyle={{ flexGrow: 1, justifyContent: 'center' }}
-        keyboardShouldPersistTaps="handled"
-      >
-        <View className="flex-1 justify-center px-6 py-8">
-          {/* Header */}
-          <View className="mb-8">
-            <Text className="text-4xl font-bold text-gray-900 mb-2">Welcome Back</Text>
-            <Text className="text-lg text-gray-600">Sign in to continue your journey</Text>
-          </View>
+      <AuthFormLayout>
+        <AuthHeader
+          title="Welcome Back"
+          subtitle="Sign in to continue your journey"
+          variant="client"
+        />
 
-          {/* Form */}
-          <View className="mb-6">
-            <Input
-              label="Email"
-              placeholder="Enter your email"
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              error={errors.email}
-            />
+        {/* Error Alert */}
+        {auth.error && (
+          <Alert
+            type="error"
+            title="Login Failed"
+            message={auth.error}
+            dismissible
+            onDismiss={() => auth.clearError()}
+          />
+        )}
 
-            <Input
-              label="Password"
-              placeholder="Enter your password"
-              value={password}
-              onChangeText={setPassword}
-              secureTextEntry
-              error={errors.password}
-            />
+        {/* Form Fields */}
+        <Input
+          label="Email"
+          placeholder="Enter your email"
+          value={form.values.email}
+          onChangeText={form.handleChange('email')}
+          onBlur={form.handleBlur('email')}
+          keyboardType="email-address"
+          error={form.touched.email ? form.errors.email : undefined}
+        />
 
-            <TouchableOpacity className="self-end mb-6">
-              <Text className="text-blue-600 font-medium">Forgot Password?</Text>
-            </TouchableOpacity>
+        <Input
+          label="Password"
+          placeholder="Enter your password"
+          value={form.values.password}
+          onChangeText={form.handleChange('password')}
+          onBlur={form.handleBlur('password')}
+          secureTextEntry
+          error={form.touched.password ? form.errors.password : undefined}
+        />
 
-            <Button
-              title="Sign In"
-              onPress={handleLogin}
-              loading={loading}
-              className="mb-4"
-            />
-          </View>
+        <Button
+          title={auth.isLoading ? 'Signing in...' : 'Sign In'}
+          onPress={form.handleSubmit}
+          loading={auth.isLoading || form.isSubmitting}
+          disabled={auth.isLoading || form.isSubmitting}
+          className="mt-6"
+        />
 
-          {/* Divider */}
-          <View className="flex-row items-center mb-6">
-            <View className="flex-1 h-px bg-gray-300" />
-            <Text className="mx-4 text-gray-500">or</Text>
-            <View className="flex-1 h-px bg-gray-300" />
-          </View>
-
-          {/* Sign Up Link */}
-          <View className="flex-row justify-center items-center">
-            <Text className="text-gray-600 text-base">Don't have an account? </Text>
-            <Link href={"/(auth)/signup" as any} asChild>
-              <TouchableOpacity>
-                <Text className="text-blue-600 font-semibold text-base">Sign Up</Text>
-              </TouchableOpacity>
-            </Link>
-          </View>
-        </View>
-      </ScrollView>
-    </KeyboardAvoidingView>
+        <AuthFooter variant="login" userType="client" />
+      </AuthFormLayout>
+    </>
   );
 }

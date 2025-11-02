@@ -155,7 +155,7 @@ export default function ProfileScreen() {
                 <Ionicons name="help-circle-outline" size={24} color="#4b5563" />
                 <Text className="ml-4 text-base text-gray-900 font-medium">Help & Support</Text>
               </TouchableOpacity>
-              <TouchableOpacity className="flex-row items-center py-4" onPress={()=> router.replace('/(auth)/signup')}>
+              <TouchableOpacity className="flex-row items-center py-4" onPress={()=> router.replace('/(auth)/login' as any)}>
                 <Ionicons name="log-out-outline" size={24} color="#ef4444" />
                 <Text className="ml-4 text-base text-red-500 font-medium">Logout</Text>
               </TouchableOpacity>
