@@ -4,7 +4,7 @@ from ..db.mongo import get_database
 from passlib.context import CryptContext
 from bson import ObjectId
 from ..auth.jwt import create_access_token
-from datetime import datetime
+from datetime import datetime, timezone
 import sys
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -20,7 +20,7 @@ async def signup(user: UserIn):
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
     print(f"Received password: '{user.password}', Length: {len(user.password.encode('utf-8'))}", file=sys.stderr)
     hashed = pwd_context.hash(user.password)
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     doc = {
         "name": user.name,
         "email": user.email,

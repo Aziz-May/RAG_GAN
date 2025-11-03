@@ -1,11 +1,17 @@
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from .core.config import settings
-from .db.mongo import connect_to_mongo, close_mongo, get_database
+from .db.mongo import connect_to_mongo, close_mongo
 from .routers import auth, client, consultant, messages
 from .middleware import add_common_middlewares
 
-app = FastAPI(title="Tutore API")
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Handle startup and shutdown events."""
+    await connect_to_mongo()
+    yield
+    await close_mongo()
+
+app = FastAPI(title="Tutore API", lifespan=lifespan)
 
 # Add CORS and other middlewares
 add_common_middlewares(app)
@@ -16,16 +22,7 @@ app.include_router(consultant.router, prefix="/consultant", tags=["consultant"])
 app.include_router(messages.router, prefix="/messages", tags=["messages"])
 
 
-@app.on_event("startup")
-async def startup_event():
-    await connect_to_mongo()
-
-
-@app.on_event("shutdown")
-async def shutdown_event():
-    await close_mongo()
-
-
 @app.get("/")
 async def root():
     return {"status": "ok", "service": "tutore-backend"}
+

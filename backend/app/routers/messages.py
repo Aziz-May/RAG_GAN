@@ -3,7 +3,7 @@ from ..schemas import MessageCreate, MessageOut, ConversationOut
 from ..db.mongo import get_database
 from ..auth.deps import get_current_user
 from bson import ObjectId
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import List
 
 router = APIRouter()
@@ -24,7 +24,7 @@ async def send_message(message: MessageCreate, current_user=Depends(get_current_
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Recipient not found")
     
     # Create message document
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     message_doc = {
         "sender_id": str(current_user.get("_id")),
         "recipient_id": message.recipient_id,

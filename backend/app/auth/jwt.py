@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from jose import jwt
 from typing import Optional
 from ..core.config import settings
@@ -7,7 +7,7 @@ ALGORITHM = "HS256"
 
 def create_access_token(subject: str, role: str, expires_delta: Optional[timedelta] = None) -> str:
     to_encode = {"sub": subject, "role": role}
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     if expires_delta:
         expire = now + expires_delta
     else:
