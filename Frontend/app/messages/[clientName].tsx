@@ -148,9 +148,12 @@ export default function ConversationScreen() {
           </TouchableOpacity>
         </View>
         <TouchableOpacity
-          style={[styles.sendButton, !newMessage.trim() && styles.sendButtonDisabled]}
+          style={[
+            styles.sendButton,
+            (!newMessage.trim() || !otherUserId) && styles.sendButtonDisabled,
+          ]}
           onPress={sendMessage}
-          disabled={!newMessage.trim()}
+          disabled={!newMessage.trim() || !otherUserId}
         >
           <Ionicons name="send" size={20} color="#ffffff" />
         </TouchableOpacity>

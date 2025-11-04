@@ -1,11 +1,28 @@
 import { httpClient } from '../http';
 import { Consultant, Session, Message, PaginatedResponse } from '@/types';
 
+export interface ConsultantListItem {
+  id: string;
+  name: string;
+  email: string;
+  role: string; // 'consultant'
+  bio?: string;
+}
+
 /**
  * Consultant API service - handles all consultant-related API calls
  * Compatible with FastAPI endpoints
  */
 export const consultantAPI = {
+  /**
+   * Lightweight list of consultants from backend
+   * GET /consultant/list
+   */
+  listBasic: async (): Promise<ConsultantListItem[]> => {
+    const res = await httpClient.get<ConsultantListItem[]>(`/consultant/list`);
+    if (!res.success) throw new Error(res.error || 'Failed to fetch consultants');
+    return res.data || [];
+  },
   /**
    * Get all consultants with optional filters
    * GET /api/consultants?specialization=&page=1&limit=10

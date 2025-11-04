@@ -64,3 +64,11 @@ class ConversationOut(BaseModel):
     last_message: Optional[str] = None
     last_message_time: Optional[datetime] = None
     unread_count: int = 0
+
+# Lightweight listing item for consultants
+class ConsultantListOut(BaseModel):
+    id: str
+    name: str
+    email: EmailStr
+    role: str
+    bio: Optional[str] = None
