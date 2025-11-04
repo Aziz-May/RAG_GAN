@@ -19,7 +19,11 @@ class UserIn(BaseModel):
     name: str = Field(..., min_length=1)
     email: EmailStr
     password: str = Field(..., min_length=6)
+    phone: str = Field(..., min_length=6)
     role: Optional[str] = "client"
+    school: Optional[str] = None
+    dream_job: Optional[str] = None
+    bio: Optional[str] = None
 
 class ConsultantIn(UserIn):
     license_number: str
@@ -33,6 +37,10 @@ class UserOut(BaseModel):
     email: EmailStr
     role: str
     created_at: Optional[datetime]
+    phone: Optional[str] = None
+    school: Optional[str] = None
+    dream_job: Optional[str] = None
+    bio: Optional[str] = None
 
 class UserInDB(UserOut):
     hashed_password: str

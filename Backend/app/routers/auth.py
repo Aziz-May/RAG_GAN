@@ -6,6 +6,7 @@ from bson import ObjectId
 from ..auth.jwt import create_access_token
 from datetime import datetime, timezone
 import sys
+from ..auth.deps import get_current_user
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -26,6 +27,10 @@ async def signup(user: UserIn):
         "email": user.email,
         "hashed_password": hashed,
         "role": user.role or "client",
+        "phone": user.phone,
+        "school": user.school or "",
+        "dream_job": user.dream_job or "",
+        "bio": user.bio or "",
         "created_at": now,
     }
     res = await db.users.insert_one(doc)
@@ -34,6 +39,10 @@ async def signup(user: UserIn):
         "name": doc["name"],
         "email": doc["email"],
         "role": doc["role"],
+        "phone": doc.get("phone"),
+        "school": doc.get("school"),
+        "dream_job": doc.get("dream_job"),
+        "bio": doc.get("bio"),
         "created_at": doc["created_at"],
     }
 
@@ -49,6 +58,22 @@ async def login(form_data: UserLogin):
 
     access_token = create_access_token(str(user.get("_id")), user.get("role"))
     return {"access_token": access_token, "token_type": "bearer"}
+
+
+@router.get("/me", response_model=UserOut)
+async def get_me(current_user=Depends(get_current_user)):
+    """Return the currently authenticated user's profile."""
+    return {
+        "id": str(current_user.get("_id")),
+        "name": current_user.get("name"),
+        "email": current_user.get("email"),
+        "role": current_user.get("role"),
+        "phone": current_user.get("phone"),
+        "school": current_user.get("school", ""),
+        "dream_job": current_user.get("dream_job", ""),
+        "bio": current_user.get("bio", ""),
+        "created_at": current_user.get("created_at"),
+    }
 
 
 # DEBUG ENDPOINT - Remove this in production

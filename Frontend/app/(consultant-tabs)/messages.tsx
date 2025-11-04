@@ -1,8 +1,9 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, ActivityIndicator } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import "../../global.css";
+import { messagesAPI, BackendConversation } from '@/services/api/messages';
 
 interface Message {
   id: string;
@@ -14,98 +15,80 @@ interface Message {
   isOnline: boolean;
 }
 
-const SYNTHETIC_CONVERSATIONS: Message[] = [
-  {
-    id: '1',
-    senderName: 'Sarah Johnson',
-    senderAvatar: 'SJ',
-    lastMessage: 'Thank you for the advice, it really helped!',
-    timestamp: '2 min ago',
-    unreadCount: 0,
-    isOnline: true,
-  },
-  {
-    id: '2',
-    senderName: 'Michael Chen',
-    senderAvatar: 'MC',
-    lastMessage: 'Can we reschedule our session?',
-    timestamp: '1 hour ago',
-    unreadCount: 1,
-    isOnline: true,
-  },
-  {
-    id: '3',
-    senderName: 'Emma Davis',
-    senderAvatar: 'ED',
-    lastMessage: 'I have been practicing the exercises you suggested',
-    timestamp: '3 hours ago',
-    unreadCount: 0,
-    isOnline: false,
-  },
-  {
-    id: '4',
-    senderName: 'John Smith',
-    senderAvatar: 'JS',
-    lastMessage: 'Looking forward to our next session',
-    timestamp: 'Yesterday',
-    unreadCount: 0,
-    isOnline: false,
-  },
-  {
-    id: '5',
-    senderName: 'Lisa Anderson',
-    senderAvatar: 'LA',
-    lastMessage: 'Thanks for checking in on me',
-    timestamp: '2 days ago',
-    unreadCount: 0,
-    isOnline: true,
-  },
-  {
-    id: '6',
-    senderName: 'Robert Wilson',
-    senderAvatar: 'RW',
-    lastMessage: 'I have some concerns about my progress',
-    timestamp: '3 days ago',
-    unreadCount: 2,
-    isOnline: false,
-  },
-];
+const formatTime = (iso?: string | null) => {
+  if (!iso) return '';
+  try {
+    const d = new Date(iso);
+    const now = Date.now();
+    const diffMs = now - d.getTime();
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return 'now';
+    if (diffMin < 60) return `${diffMin}m`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h`;
+    const diffDay = Math.floor(diffHr / 24);
+    if (diffDay === 1) return 'Yesterday';
+    return d.toLocaleDateString();
+  } catch {
+    return '';
+  }
+};
 
 export default function MessagesScreen() {
   const [searchText, setSearchText] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [items, setItems] = useState<BackendConversation[]>([]);
   const router = useRouter();
 
-  const filteredConversations = SYNTHETIC_CONVERSATIONS.filter(conv =>
-    conv.senderName.toLowerCase().includes(searchText.toLowerCase())
+  const filteredConversations = items.filter(conv =>
+    conv.other_user_name.toLowerCase().includes(searchText.toLowerCase())
   );
 
-  const totalUnread = SYNTHETIC_CONVERSATIONS.reduce((sum, conv) => sum + conv.unreadCount, 0);
+  const totalUnread = items.reduce((sum, conv) => sum + (conv.unread_count || 0), 0);
 
-  const ConversationItem = ({ message }: { message: Message }) => (
+  const load = async () => {
+    try {
+      setLoading(true);
+      setError(null);
+      const data = await messagesAPI.listConversations();
+      setItems(data);
+    } catch (e: any) {
+      setError(e.message || 'Failed to load conversations');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  const ConversationItem = ({ message }: { message: any }) => (
     <TouchableOpacity 
       style={styles.conversationItem}
-      onPress={() => router.push({ pathname: '/messages/[clientName]', params: { clientName: message.senderName } })}
+      onPress={() => router.push({ pathname: '/messages/[clientName]', params: { clientName: message.other_user_name, otherUserId: message.other_user_id } })}
     >
       <View style={styles.avatarContainer}>
         <View style={[styles.avatar, { backgroundColor: '#4f46e5' }]}>
-          <Text style={styles.avatarText}>{message.senderAvatar}</Text>
+          <Text style={styles.avatarText}>{message.other_user_name.split(' ').map((p: string) => p[0]).join('').slice(0,2).toUpperCase()}</Text>
         </View>
-        {message.isOnline && <View style={styles.onlineBadge} />}
+        {/* online badge not supported yet */}
       </View>
 
       <View style={styles.messageContent}>
         <View style={styles.messageHeader}>
-          <Text style={styles.senderName}>{message.senderName}</Text>
-          <Text style={styles.timestamp}>{message.timestamp}</Text>
+          <Text style={styles.senderName}>{message.other_user_name}</Text>
+          <Text style={styles.timestamp}>{formatTime(message.last_message_time)}</Text>
         </View>
         <Text style={styles.lastMessage} numberOfLines={1}>
-          {message.lastMessage}
+          {message.last_message}
         </Text>
       </View>
 
-      {message.unreadCount > 0 && (
+      {message.unread_count > 0 && (
         <View style={styles.unreadBadge}>
-          <Text style={styles.unreadText}>{message.unreadCount}</Text>
+          <Text style={styles.unreadText}>{message.unread_count}</Text>
         </View>
       )}
     </TouchableOpacity>
@@ -136,19 +119,27 @@ export default function MessagesScreen() {
         />
       </View>
 
-      <FlatList
-        data={filteredConversations}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <ConversationItem message={item} />}
-        scrollEnabled={true}
-        contentContainerStyle={styles.listContainer}
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Ionicons name="chatbubbles-outline" size={48} color="#d1d5db" />
-            <Text style={styles.emptyText}>No conversations found</Text>
-          </View>
-        }
-      />
+      {loading ? (
+        <View style={{ padding: 24 }}>
+          <ActivityIndicator color="#4f46e5" />
+        </View>
+      ) : error ? (
+        <Text style={[styles.emptyText, { color: '#ef4444' }]}>{error}</Text>
+      ) : (
+        <FlatList
+          data={filteredConversations}
+          keyExtractor={(item) => item.other_user_id}
+          renderItem={({ item }) => <ConversationItem message={item} />}
+          scrollEnabled={true}
+          contentContainerStyle={styles.listContainer}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <Ionicons name="chatbubbles-outline" size={48} color="#d1d5db" />
+              <Text style={styles.emptyText}>No conversations found</Text>
+            </View>
+          }
+        />
+      )}
     </View>
   );
 }

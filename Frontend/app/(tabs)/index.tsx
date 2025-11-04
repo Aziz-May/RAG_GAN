@@ -1,11 +1,32 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { Link } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import Card from '@/components/ui/Card';
+import httpClient from '@/services/http';
 import "../../global.css";
 
 export default function HomeScreen() {
+  const [checking, setChecking] = useState(false);
+
+  const checkBackend = async () => {
+    try {
+      setChecking(true);
+      const res = await httpClient.get<{ status: string; service: string }>(`/`);
+      if (res.success) {
+        Alert.alert(
+          'Backend Connected',
+          `Status: ${res.data?.status}\nService: ${res.data?.service}`
+        );
+      } else {
+        Alert.alert('Backend Error', res.error || 'Unknown error');
+      }
+    } catch (e: any) {
+      Alert.alert('Network Error', e?.message || 'Could not reach backend');
+    } finally {
+      setChecking(false);
+    }
+  };
   return (
     <ScrollView className="flex-1 bg-slate-50">
       {/* Header */}
@@ -18,7 +39,7 @@ export default function HomeScreen() {
 
       <View className="px-6 py-6">
         {/* Quick Actions */}
-        <Text className="text-xl font-bold text-gray-900 mb-4">Quick Actions</Text>
+  <Text className="text-xl font-bold text-gray-900 mb-4">Quick Actions</Text>
         
         <View className="flex-row flex-wrap gap-4 mb-8">
           <Link href="/(tabs)/chat" asChild>
@@ -32,6 +53,21 @@ export default function HomeScreen() {
               </Card>
             </TouchableOpacity>
           </Link>
+
+          {/* Dev-only: Check backend connectivity */}
+          <TouchableOpacity className="flex-1 min-w-[45%]" onPress={checkBackend}>
+            <Card className="items-center py-6 shadow-md">
+              <View className="w-16 h-16 rounded-full bg-sky-50 items-center justify-center mb-3">
+                {checking ? (
+                  <ActivityIndicator color="#0ea5e9" />
+                ) : (
+                  <Ionicons name="cloud-done" size={32} color="#0ea5e9" />
+                )}
+              </View>
+              <Text className="text-base font-semibold text-gray-900">Check Backend</Text>
+              <Text className="text-sm text-gray-600">Ping API Root</Text>
+            </Card>
+          </TouchableOpacity>
 
           <Link href="/(tabs)/upload" asChild>
             <TouchableOpacity className="flex-1 min-w-[45%]">

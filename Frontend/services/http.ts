@@ -1,7 +1,8 @@
 import * as SecureStore from 'expo-secure-store';
 import { ApiError } from '@/types';
 
-const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000/api';
+// Backend does not use "/api" prefix; default to FastAPI root
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
 export interface RequestOptions {
   method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH';
@@ -25,6 +26,11 @@ class HttpClient {
 
   constructor(baseURL: string = API_BASE_URL) {
     this.baseURL = baseURL;
+    // Debug log to verify backend URL wiring
+    try {
+      // eslint-disable-next-line no-console
+      console.log(`[HttpClient] Base URL: ${this.baseURL}`);
+    } catch {}
   }
 
   /**

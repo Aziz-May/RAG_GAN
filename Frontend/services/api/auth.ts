@@ -1,117 +1,113 @@
 import { AuthResponse, LoginRequest, SignupRequest, ConsultantSignupRequest, User } from '@/types';
+import httpClient from '../http';
+const BASE = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:8000';
 
 /**
- * Generate mock user for development/testing when backend is unavailable
- */
-const createMockAuthResponse = (email: string, name: string, role: 'client' | 'consultant'): AuthResponse => {
-  const mockUser: User = {
-    id: `mock_${role}_${Date.now()}`,
-    email,
-    name,
-    role,
-    avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`,
-    created_at: new Date().toISOString(),
-  };
-
-  return {
-    access_token: `mock_token_${Date.now()}`,
-    token_type: 'bearer',
-    user: mockUser,
-  };
-};
-
-/**
- * Authentication API service - Development mode with mock data
- * When backend is ready, replace these functions with real API calls
+ * Authentication API service - Real backend integration
  */
 export const authAPI = {
   /**
    * Login user with email and password
+   * POST /auth/login -> { access_token, token_type }
+   * GET /auth/me     -> User profile (using bearer token)
    */
   login: async (credentials: LoginRequest): Promise<AuthResponse> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    console.log('[AuthAPI] Login with mock data:', credentials.email);
-    return createMockAuthResponse(credentials.email, credentials.email.split('@')[0], 'client');
+    const loginResp = await httpClient.post<{ access_token: string; token_type: string }>(
+      '/auth/login',
+      { email: credentials.email, password: credentials.password }
+    );
+    if (!loginResp.success || !loginResp.data) {
+      throw new Error(loginResp.error || 'Login failed');
+    }
+
+    const token = loginResp.data.access_token;
+
+    // Fetch profile using the freshly issued token (without relying on storage yet)
+  const profileRes = await fetch(`${BASE}/auth/me`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+    });
+    if (!profileRes.ok) {
+      const errText = await profileRes.text();
+      throw new Error(errText || 'Failed to fetch profile');
+    }
+    const user = (await profileRes.json()) as User;
+
+    return {
+      access_token: token,
+      token_type: loginResp.data.token_type,
+      user,
+    };
   },
 
   /**
-   * Login as consultant (mock)
+   * Login as consultant (same as login, server role in token determines permissions)
    */
   loginConsultant: async (credentials: LoginRequest): Promise<AuthResponse> => {
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    console.log('[AuthAPI] Consultant login with mock data:', credentials.email);
-    return createMockAuthResponse(
-      credentials.email,
-      credentials.email.split('@')[0],
-      'consultant'
-    );
+    return authAPI.login(credentials);
   },
 
   /**
    * Sign up a new client user
+   * POST /auth/signup -> UserOut
+   * Then auto-login to get access token
    */
   signupClient: async (data: SignupRequest): Promise<AuthResponse> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    console.log('[AuthAPI] Client signup with mock data:', data.email);
-    return createMockAuthResponse(data.email, data.name, 'client');
+    const payload = { ...data, role: 'client' as const };
+    const signupResp = await httpClient.post<User>('/auth/signup', payload);
+    if (!signupResp.success || !signupResp.data) {
+      throw new Error(signupResp.error || 'Signup failed');
+    }
+
+    const login = await authAPI.login({ email: data.email, password: data.password });
+    return login;
   },
 
   /**
-   * Sign up a new consultant user
+   * Sign up a new consultant user (then auto-login)
    */
   signupConsultant: async (data: ConsultantSignupRequest): Promise<AuthResponse> => {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-    
-    console.log('[AuthAPI] Consultant signup with mock data:', data.email);
-    return createMockAuthResponse(data.email, data.name, 'consultant');
-  },
+    const payload = { ...data, role: 'consultant' as const };
+    const signupResp = await httpClient.post<User>('/auth/signup', payload);
+    if (!signupResp.success || !signupResp.data) {
+      throw new Error(signupResp.error || 'Consultant signup failed');
+    }
 
-  /**
-   * Verify email with token
-   */
-  verifyEmail: async (token: string): Promise<{ success: boolean }> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    console.log('[AuthAPI] Email verification with mock data');
-    return { success: true };
+    const login = await authAPI.login({ email: data.email, password: data.password });
+    return login;
   },
 
   /**
    * Get current user profile
    */
   getProfile: async (): Promise<User> => {
-    // In development mode, this won't be called on startup
-    throw new Error('Profile fetch not available in development mode');
+    const resp = await httpClient.get<User>('/auth/me');
+    if (!resp.success || !resp.data) {
+      throw new Error(resp.error || 'Failed to fetch profile');
+    }
+    return resp.data;
   },
 
   /**
-   * Logout
+   * Logout (client-side)
    */
   logout: async (): Promise<void> => {
-    console.log('[AuthAPI] Logout');
-    // No-op in development mode
+    // No-op for backend; token is stateless JWT
+    return;
   },
 
   /**
-   * Request password reset
+   * Request password reset (placeholder if needed later)
    */
-  requestPasswordReset: async (email: string): Promise<{ message: string }> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    console.log('[AuthAPI] Password reset requested for:', email);
-    return { message: 'Password reset email sent' };
+  requestPasswordReset: async (_email: string): Promise<{ message: string }> => {
+    return { message: 'Not implemented' };
   },
 
-  /**
-   * Reset password with token
-   */
-  resetPassword: async (token: string, newPassword: string): Promise<{ message: string }> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    console.log('[AuthAPI] Password reset with mock data');
-    return { message: 'Password reset successful' };
+  resetPassword: async (_token: string, _newPassword: string): Promise<{ message: string }> => {
+    return { message: 'Not implemented' };
   },
 };
 

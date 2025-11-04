@@ -17,6 +17,7 @@ interface ConsultantSignupValues {
   email: string;
   password: string;
   confirm_password: string;
+  phone: string;
   license_number: string;
   specialization: string;
   years_of_experience: string;
@@ -74,6 +75,7 @@ export default function ConsultantSignupScreen() {
       email: '',
       password: '',
       confirm_password: '',
+      phone: '',
       license_number: '',
       specialization: '',
       years_of_experience: '',
@@ -86,6 +88,7 @@ export default function ConsultantSignupScreen() {
           email: values.email,
           password: values.password,
           role: 'consultant',
+          phone: values.phone,
           license_number: values.license_number,
           specialization: values.specialization,
           years_of_experience: values.years_of_experience,
@@ -141,6 +144,17 @@ export default function ConsultantSignupScreen() {
           onBlur={form.handleBlur('email')}
           keyboardType="email-address"
           error={form.touched.email ? form.errors.email : undefined}
+        />
+
+        {/* Phone */}
+        <Input
+          label="Phone Number"
+          placeholder="Enter your phone number"
+          value={form.values.phone}
+          onChangeText={form.handleChange('phone')}
+          onBlur={form.handleBlur('phone')}
+          keyboardType="phone-pad"
+          error={form.touched.phone ? form.errors.phone : undefined}
         />
 
         {/* License Number */}

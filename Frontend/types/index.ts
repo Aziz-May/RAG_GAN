@@ -9,6 +9,10 @@ export interface User {
   role: 'client' | 'consultant';
   avatar?: string;
   created_at: string;
+  phone?: string;
+  school?: string;
+  dream_job?: string;
+  bio?: string;
 }
 
 export interface ClientProfile extends User {
@@ -48,6 +52,10 @@ export interface SignupRequest {
   email: string;
   password: string;
   role: 'client' | 'consultant';
+  phone: string;
+  school?: string;
+  dream_job?: string;
+  bio?: string;
 }
 
 export interface ConsultantSignupRequest extends SignupRequest {

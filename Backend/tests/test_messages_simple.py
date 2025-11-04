@@ -30,7 +30,8 @@ def test_setup_users(client):
         "name": "Dr. Sarah Johnson",
         "email": consultant_email,
         "password": consultant_password,
-        "role": "consultant"
+        "role": "consultant",
+        "phone": "+10000000001"
     }
     
     # 1. Sign up consultant
@@ -52,7 +53,8 @@ def test_setup_users(client):
         "name": "John Doe",
         "email": client_email,
         "password": client_password,
-        "role": "client"
+        "role": "client",
+        "phone": "+10000000002"
     }
 
     # 3. Sign up client

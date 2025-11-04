@@ -17,6 +17,7 @@ interface SignupValues {
   email: string;
   password: string;
   confirmPassword: string;
+  phone: string;
 }
 
 export default function SignupScreen() {
@@ -52,7 +53,7 @@ export default function SignupScreen() {
 
   // Initialize form
   const form = useForm<SignupValues>(
-    { name: '', email: '', password: '', confirmPassword: '' },
+    { name: '', email: '', password: '', confirmPassword: '', phone: '' },
     async (values) => {
       try {
         // If consultant role selected, go to consultant signup
@@ -67,6 +68,7 @@ export default function SignupScreen() {
           email: values.email,
           password: values.password,
           role: 'client',
+          phone: values.phone,
         });
         // Navigate to client tabs after signup
   router.replace('/(tabs)');
@@ -120,6 +122,16 @@ export default function SignupScreen() {
           onBlur={form.handleBlur('email')}
           keyboardType="email-address"
           error={form.touched.email ? form.errors.email : undefined}
+        />
+
+        <Input
+          label="Phone Number"
+          placeholder="Enter your phone number"
+          value={form.values.phone}
+          onChangeText={form.handleChange('phone')}
+          onBlur={form.handleBlur('phone')}
+          keyboardType="phone-pad"
+          error={form.touched.phone ? form.errors.phone : undefined}
         />
 
         <Input

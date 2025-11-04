@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '@/components/ui/Button';
@@ -6,9 +6,10 @@ import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import '../../global.css';
 import { router } from 'expo-router';
+import authAPI from '@/services/api';
 
 export default function ProfileScreen() {
-  const [isEditing, setIsEditing] = useState(false);
+ const [isEditing, setIsEditing] = useState(false);
   const [profileData, setProfileData] = useState({
     name: 'John Doe',
     email: 'john.doe@example.com',
@@ -20,10 +21,35 @@ export default function ProfileScreen() {
 
   const [editData, setEditData] = useState(profileData);
 
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const user = await authAPI.getProfile();
+        // Map backend user shape to local profileData shape
+        const mapped = {
+          ...profileData,
+          name: user.name,
+          email: user.email,
+          phone: user.phone || profileData.phone,
+          school: user.school || profileData.school,
+          dreamJob: (user as any).dream_job || profileData.dreamJob,
+          bio: user.bio || profileData.bio,
+        } as any;
+        setProfileData(mapped);
+        setEditData(mapped);
+      } catch (error) {
+        console.error("Erreur lors du chargement du profil :", error);
+      }
+    };
+
+    fetchProfile();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleSave = () => {
     setProfileData(editData);
     setIsEditing(false);
-    Alert.alert('Success', 'Profile updated successfully!');
+    Alert.alert("Success", "Profile updated successfully!");
   };
 
   const handleCancel = () => {
@@ -32,7 +58,7 @@ export default function ProfileScreen() {
   };
 
   const handleImagePick = () => {
-    Alert.alert('Photo Upload', 'Image picker will be integrated here');
+    Alert.alert("Photo Upload", "Image picker will be integrated here");
   };
 
   return (

@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import '../../global.css';
+import { useRouter } from 'expo-router';
 
 interface Psychologist {
   id: string;
@@ -46,18 +47,11 @@ const psychologists: Psychologist[] = [
 ];
 
 export default function PsychologistsScreen() {
+  const router = useRouter();
+
   const handleMessage = (psychologist: Psychologist) => {
-    Alert.alert(
-      'Send Message',
-      `Send a message to ${psychologist.name}?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Send',
-          onPress: () => Alert.alert('Success', 'Message sent!'),
-        },
-      ]
-    );
+    // Navigate to conversation screen with this counselor
+    router.push({ pathname: '/messages/[clientName]', params: { clientName: psychologist.name } });
   };
 
   const handleConsultation = (psychologist: Psychologist) => {

@@ -1,8 +1,10 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useEffect, useMemo, useState } from 'react';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, KeyboardAvoidingView, Platform, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import "../../global.css";
+import { messagesAPI, BackendMessage } from '@/services/api/messages';
+import { useAuth } from '@/hooks';
 
 interface ChatMessage {
   id: string;
@@ -11,85 +13,63 @@ interface ChatMessage {
   timestamp: string;
 }
 
-const SYNTHETIC_MESSAGES: ChatMessage[] = [
-  {
-    id: '1',
-    text: 'Hi! How are you doing today?',
-    sender: 'consultant',
-    timestamp: '10:00 AM',
-  },
-  {
-    id: '2',
-    text: 'I\'m doing okay, just been feeling a bit stressed lately',
-    sender: 'client',
-    timestamp: '10:02 AM',
-  },
-  {
-    id: '3',
-    text: 'I understand. Can you tell me more about what\'s been causing the stress?',
-    sender: 'consultant',
-    timestamp: '10:03 AM',
-  },
-  {
-    id: '4',
-    text: 'Work has been overwhelming. There are so many deadlines and expectations.',
-    sender: 'client',
-    timestamp: '10:05 AM',
-  },
-  {
-    id: '5',
-    text: 'That sounds challenging. Have you tried any of the breathing exercises we discussed in our last session?',
-    sender: 'consultant',
-    timestamp: '10:06 AM',
-  },
-  {
-    id: '6',
-    text: 'Yes, I have been trying them. They do help when I remember to use them.',
-    sender: 'client',
-    timestamp: '10:08 AM',
-  },
-  {
-    id: '7',
-    text: 'That\'s great to hear! It\'s important to practice regularly so it becomes a habit. Would you like to talk about prioritizing your tasks?',
-    sender: 'consultant',
-    timestamp: '10:10 AM',
-  },
-  {
-    id: '8',
-    text: 'That would be helpful. I feel like everything is equally urgent.',
-    sender: 'client',
-    timestamp: '10:12 AM',
-  },
-  {
-    id: '9',
-    text: 'Let\'s break this down together. We can use the Eisenhower matrix to categorize your tasks. Should we schedule a session to dive deeper into this?',
-    sender: 'consultant',
-    timestamp: '10:15 AM',
-  },
-  {
-    id: '10',
-    text: 'Yes, that sounds great! When are you available?',
-    sender: 'client',
-    timestamp: '10:17 AM',
-  },
-];
+const formatTime = (iso: string) => {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  } catch {
+    return '';
+  }
+};
 
 export default function ConversationScreen() {
   const router = useRouter();
-  const { clientName } = useLocalSearchParams();
-  const [messages, setMessages] = useState<ChatMessage[]>(SYNTHETIC_MESSAGES);
+  const { clientName, otherUserId } = useLocalSearchParams<{ clientName?: string; otherUserId?: string }>();
+  const { user } = useAuth();
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const sendMessage = () => {
-    if (newMessage.trim()) {
-      const message: ChatMessage = {
-        id: String(messages.length + 1),
-        text: newMessage,
-        sender: 'consultant',
-        timestamp: new Date().toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+  const load = async () => {
+    if (!otherUserId) return;
+    try {
+      setLoading(true);
+      setError(null);
+      const data: BackendMessage[] = await messagesAPI.getConversation(String(otherUserId));
+      const mapped: ChatMessage[] = data.map((m) => ({
+        id: m.id,
+        text: m.content,
+        sender: m.sender_id === user?.id ? (user?.role === 'consultant' ? 'consultant' : 'client') : (user?.role === 'consultant' ? 'client' : 'consultant'),
+        timestamp: formatTime(m.created_at),
+      }));
+      setMessages(mapped);
+    } catch (e: any) {
+      setError(e.message || 'Failed to load messages');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [otherUserId]);
+
+  const sendMessage = async () => {
+    if (!newMessage.trim() || !otherUserId) return;
+    try {
+      const created = await messagesAPI.sendMessage({ recipient_id: String(otherUserId), content: newMessage.trim() });
+      const msg: ChatMessage = {
+        id: created.id,
+        text: created.content,
+        sender: created.sender_id === user?.id ? (user?.role === 'consultant' ? 'consultant' : 'client') : (user?.role === 'consultant' ? 'client' : 'consultant'),
+        timestamp: formatTime(created.created_at),
       };
-      setMessages([...messages, message]);
+      setMessages((prev) => [...prev, msg]);
       setNewMessage('');
+    } catch (e) {
+      // Optionally handle error UI
     }
   };
 
@@ -129,15 +109,23 @@ export default function ConversationScreen() {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={messages}
-        keyExtractor={(item) => item.id}
-        renderItem={({ item }) => <MessageBubble message={item} />}
-        scrollEnabled={true}
-        contentContainerStyle={styles.messagesContainer}
-        inverted={false}
-        onEndReachedThreshold={0.5}
-      />
+      {loading ? (
+        <View style={{ padding: 24 }}>
+          <ActivityIndicator color="#4f46e5" />
+        </View>
+      ) : error ? (
+        <Text style={{ color: '#ef4444', textAlign: 'center', marginTop: 16 }}>{error}</Text>
+      ) : (
+        <FlatList
+          data={messages}
+          keyExtractor={(item) => item.id}
+          renderItem={({ item }) => <MessageBubble message={item} />}
+          scrollEnabled={true}
+          contentContainerStyle={styles.messagesContainer}
+          inverted={false}
+          onEndReachedThreshold={0.5}
+        />
+      )}
 
       <View style={styles.inputContainer}>
         <View style={styles.inputWrapper}>
