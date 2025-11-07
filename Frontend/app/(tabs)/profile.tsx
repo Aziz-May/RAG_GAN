@@ -6,10 +6,13 @@ import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import '../../global.css';
 import { router } from 'expo-router';
-import authAPI from '@/services/api';
+import authAPI from '@/services/api/auth';
+import { useAuth } from '@/hooks';
 
 export default function ProfileScreen() {
+ const auth = useAuth();
  const [isEditing, setIsEditing] = useState(false);
+ const [saving, setSaving] = useState(false);
   const [profileData, setProfileData] = useState({
     name: 'John Doe',
     email: 'john.doe@example.com',
@@ -46,10 +49,36 @@ export default function ProfileScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const handleSave = () => {
-    setProfileData(editData);
-    setIsEditing(false);
-    Alert.alert("Success", "Profile updated successfully!");
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      const patch: any = {
+        name: editData.name,
+        phone: editData.phone,
+        school: editData.school,
+        dream_job: editData.dreamJob,
+        bio: editData.bio,
+      };
+      const updated = await authAPI.updateProfile(patch);
+      const mapped = {
+        name: updated.name,
+        email: updated.email,
+        phone: updated.phone || '',
+        school: (updated as any).school || '',
+        dreamJob: (updated as any).dream_job || '',
+        bio: updated.bio || '',
+      } as any;
+      setProfileData(mapped);
+      setEditData(mapped);
+      // Update context so it persists
+      auth.updateUser(updated);
+      setIsEditing(false);
+      Alert.alert("Success", "Profile updated successfully!");
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to update profile');
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleCancel = () => {
@@ -163,7 +192,7 @@ export default function ProfileScreen() {
                   variant="outline"
                   className="flex-1"
                 />
-                <Button title="Save" onPress={handleSave} className="flex-1" />
+                <Button title={saving ? 'Saving...' : 'Save'} onPress={handleSave} disabled={saving} className="flex-1" />
               </View>
             </View>
           )}

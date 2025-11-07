@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { View, Text, ScrollView, TouchableOpacity, Image, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Button from '@/components/ui/Button';
@@ -6,25 +6,77 @@ import Input from '@/components/ui/Input';
 import Card from '@/components/ui/Card';
 import '../../global.css';
 import { router } from 'expo-router';
+import { useAuth } from '@/hooks';
+import authAPI from '@/services/api/auth';
 
 export default function ProfileScreen() {
+  const auth = useAuth();
   const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [profileData, setProfileData] = useState({
-    name: 'John Doe',
-    email: 'john.doe@example.com',
-    school: 'Harvard University',
-    dreamJob: 'Software Engineer',
-    bio: 'Passionate about technology and learning new things every day.',
-    phone: '+1 234 567 8900',
+    name: auth.user?.name || '',
+    email: auth.user?.email || '',
+    school: auth.user?.school || '',
+    dreamJob: (auth.user as any)?.dream_job || '',
+    bio: auth.user?.bio || '',
+    phone: auth.user?.phone || '',
   });
 
   const [editData, setEditData] = useState(profileData);
 
-  const handleSave = () => {
-    setProfileData(editData);
-    setIsEditing(false);
-    Alert.alert('Success', 'Profile updated successfully!');
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      const patch = {
+        name: editData.name,
+        phone: editData.phone,
+        school: editData.school,
+        dream_job: editData.dreamJob,
+        bio: editData.bio,
+      } as any;
+      const updated = await auth.updateProfile(patch);
+      const mapped = {
+        name: updated.name,
+        email: updated.email,
+        school: (updated as any).school || '',
+        dreamJob: (updated as any).dream_job || '',
+        bio: updated.bio || '',
+        phone: updated.phone || '',
+      };
+      setProfileData(mapped);
+      setEditData(mapped);
+      setIsEditing(false);
+      Alert.alert('Success', 'Profile updated successfully!');
+    } catch (e: any) {
+      Alert.alert('Error', e.message || 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
   };
+  useEffect(() => {
+    // Refresh from backend to ensure latest
+    const load = async () => {
+      try {
+        setLoading(true);
+        const user = await authAPI.getProfile();
+        const mapped = {
+          name: user.name,
+          email: user.email,
+          school: (user as any).school || '',
+          dreamJob: (user as any).dream_job || '',
+          bio: user.bio || '',
+          phone: user.phone || '',
+        };
+        setProfileData(mapped);
+        setEditData(mapped);
+      } catch (e) {
+        console.warn('Failed to load profile', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
 
   const handleCancel = () => {
     setEditData(profileData);
@@ -137,7 +189,7 @@ export default function ProfileScreen() {
                   variant="outline"
                   className="flex-1"
                 />
-                <Button title="Save" onPress={handleSave} className="flex-1" />
+                <Button title={loading ? 'Saving...' : 'Save'} onPress={handleSave} disabled={loading} className="flex-1" />
               </View>
             </View>
           )}

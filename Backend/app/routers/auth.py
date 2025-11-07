@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Depends, HTTPException, status
-from ..schemas import UserIn, UserOut, Token, ConsultantIn, UserLogin
+from ..schemas import UserIn, UserOut, Token, ConsultantIn, UserLogin, UserUpdate
 from ..db.mongo import get_database
 from passlib.context import CryptContext
 from bson import ObjectId
@@ -16,7 +16,9 @@ router = APIRouter()
 @router.post("/signup", response_model=UserOut)
 async def signup(user: UserIn):
     db = get_database()
-    existing = await db.users.find_one({"email": user.email})
+    # Normalize email (lowercase, strip)
+    normalized_email = user.email.strip().lower()
+    existing = await db.users.find_one({"email": normalized_email})
     if existing:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Email already registered")
     print(f"Received password: '{user.password}', Length: {len(user.password.encode('utf-8'))}", file=sys.stderr)
@@ -24,7 +26,7 @@ async def signup(user: UserIn):
     now = datetime.now(timezone.utc)
     doc = {
         "name": user.name,
-        "email": user.email,
+        "email": normalized_email,
         "hashed_password": hashed,
         "role": user.role or "client",
         "phone": user.phone,
@@ -50,7 +52,9 @@ async def signup(user: UserIn):
 @router.post("/login", response_model=Token)
 async def login(form_data: UserLogin):
     db = get_database()
-    user = await db.users.find_one({"email": form_data.email})
+    # Normalize email to match storage
+    normalized_email = form_data.email.strip().lower()
+    user = await db.users.find_one({"email": normalized_email})
     if not user:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid credentials")
     if not pwd_context.verify(form_data.password, user.get("hashed_password")):
@@ -63,6 +67,35 @@ async def login(form_data: UserLogin):
 @router.get("/me", response_model=UserOut)
 async def get_me(current_user=Depends(get_current_user)):
     """Return the currently authenticated user's profile."""
+    return {
+        "id": str(current_user.get("_id")),
+        "name": current_user.get("name"),
+        "email": current_user.get("email"),
+        "role": current_user.get("role"),
+        "phone": current_user.get("phone"),
+        "school": current_user.get("school", ""),
+        "dream_job": current_user.get("dream_job", ""),
+        "bio": current_user.get("bio", ""),
+        "created_at": current_user.get("created_at"),
+    }
+
+
+@router.patch("/me", response_model=UserOut)
+async def update_me(update: UserUpdate, current_user=Depends(get_current_user)):
+    """Partially update the current user's profile."""
+    db = get_database()
+    fields = {}
+    for k, v in update.model_dump(exclude_unset=True).items():
+        if v is not None:
+            fields[k] = v
+    if not fields:
+        # Nothing to update, return current
+        return await get_me(current_user)
+    # Apply update
+    await db.users.update_one({"_id": current_user.get("_id")}, {"$set": fields})
+    # Merge for response
+    for k, v in fields.items():
+        current_user[k] = v
     return {
         "id": str(current_user.get("_id")),
         "name": current_user.get("name"),

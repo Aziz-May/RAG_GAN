@@ -72,3 +72,10 @@ class ConsultantListOut(BaseModel):
     email: EmailStr
     role: str
     bio: Optional[str] = None
+
+class UserUpdate(BaseModel):
+    name: Optional[str] = None
+    phone: Optional[str] = None
+    school: Optional[str] = None
+    dream_job: Optional[str] = None
+    bio: Optional[str] = None

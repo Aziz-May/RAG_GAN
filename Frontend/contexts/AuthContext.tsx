@@ -18,6 +18,7 @@ interface AuthContextType {
   logout: () => Promise<void>;
   clearError: () => void;
   updateUser: (user: User) => void;
+  updateProfile: (patch: Partial<User>) => Promise<User>;
 }
 
 export const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -199,6 +200,25 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const updateUser = (updatedUser: User) => {
     setUser(updatedUser);
+    // Persist in SecureStore so it survives reloads
+    try {
+      SecureStore.setItemAsync('auth_user', JSON.stringify(updatedUser));
+    } catch (e) {
+      console.warn('Failed to persist updated user', e);
+    }
+  };
+
+  // Convenience: update profile via API and persist
+  const updateProfile = async (patch: Partial<User>) => {
+    try {
+      setIsLoading(true);
+      const updated = await authAPI.updateProfile(patch);
+      setUser(updated);
+      await SecureStore.setItemAsync('auth_user', JSON.stringify(updated));
+      return updated;
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const value: AuthContextType = {
@@ -214,6 +234,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     logout,
     clearError,
     updateUser,
+    updateProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

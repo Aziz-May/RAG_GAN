@@ -92,6 +92,23 @@ export const authAPI = {
   },
 
   /**
+   * Update current user profile (partial)
+   */
+  updateProfile: async (data: Partial<User>): Promise<User> => {
+    // Only send allowed fields
+    const allowed: any = {};
+    const keys = ['name', 'phone', 'school', 'dream_job', 'bio'];
+    keys.forEach((k) => {
+      if (k in (data as any)) (allowed as any)[k] = (data as any)[k];
+    });
+    const resp = await httpClient.patch<User>('/auth/me', allowed);
+    if (!resp.success || !resp.data) {
+      throw new Error(resp.error || 'Failed to update profile');
+    }
+    return resp.data;
+  },
+
+  /**
    * Logout (client-side)
    */
   logout: async (): Promise<void> => {
