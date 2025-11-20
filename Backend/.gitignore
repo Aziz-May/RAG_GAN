@@ -1,4 +1,4 @@
-data/
+data/*
 chroma_db/
 chunks.jsonl
 # Byte-compiled / optimized / DLL files
