@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from .db.mongo import connect_to_mongo, close_mongo
-from .routers import auth, client, consultant, messages
+from .routers import auth, client, consultant, messages, rag
 from .routers import ai
 from .middleware import add_common_middlewares
 
@@ -22,6 +22,7 @@ app.include_router(client.router, prefix="/client", tags=["client"])
 app.include_router(consultant.router, prefix="/consultant", tags=["consultant"])
 app.include_router(messages.router, prefix="/messages", tags=["messages"])
 app.include_router(ai.router, prefix="/ai", tags=["ai"])
+app.include_router(rag.router, prefix="/rag", tags=["rag"])
 
 
 @app.get("/")

@@ -8,3 +8,4 @@ export { consultantAPI, default as consultantDefault } from './consultant';
 export { clientAPI, default as clientDefault } from './client';
 export { messagesAPI, BackendConversation, BackendMessage, default as messagesDefault } from './messages';
 export { searchAPI, SearchResult, ChatMessage, AIChatResponse, default as searchDefault } from './search';
+export { ragAPI, EXAMPLE_QUESTIONS, SourceChunk, RAGQueryRequest, RAGQueryResponse, RAGStatus, RAGHealth, default as ragDefault } from './rag';

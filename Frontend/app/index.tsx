@@ -14,9 +14,10 @@ export default function Index() {
     return <Redirect href={href} />;
   }
 
-  // If we have a token but user isn't hydrated (dev/mock), send to client tabs by default
-  if (auth.token) {
-    return <Redirect href="/(tabs)" />;
+  // If we have a token but no user yet, wait for user to be loaded
+  // This prevents routing to wrong tabs during hydration
+  if (auth.token && !auth.user) {
+    return null; // Wait for user to load
   }
 
   return <Redirect href={ROUTES.AUTH.LOGIN as any} />;

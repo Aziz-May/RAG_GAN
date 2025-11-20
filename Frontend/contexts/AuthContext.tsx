@@ -43,23 +43,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         const storedToken = await SecureStore.getItemAsync('auth_token');
         const storedUser = await SecureStore.getItemAsync('auth_user');
         
-        if (storedToken) {
+        if (storedToken && storedUser) {
           setToken(storedToken);
           
-          // In development mode with mock API, we can't fetch profile
-          // Just skip profile fetch and keep the token
-          console.log('Token restored from storage');
-          // Restore user if available
-          if (storedUser) {
-            try {
-              const parsed = JSON.parse(storedUser) as User;
-              setUser(parsed);
-            } catch (e) {
-              console.warn('Failed to parse stored user');
-            }
+          // Restore user from storage
+          try {
+            const parsed = JSON.parse(storedUser) as User;
+            setUser(parsed);
+            console.log('Auth restored from storage:', { role: parsed.role, email: parsed.email });
+          } catch (e) {
+            console.warn('Failed to parse stored user, clearing auth');
+            await SecureStore.deleteItemAsync('auth_token');
+            await SecureStore.deleteItemAsync('auth_user');
           }
-          // In production, you would call getProfile() here
-          // For now, we'll just validate that the token exists
+        } else if (storedToken) {
+          // Token exists but no user - clear to prevent routing issues
+          console.warn('Token without user found, clearing...');
+          await SecureStore.deleteItemAsync('auth_token');
         }
       } catch (err) {
         console.error('Failed to initialize auth:', err);
